@@ -34,7 +34,7 @@ const popularDestinations = [
 
 let rides = [];
 let users = [
-  { id: 'u1', name: 'Guest User', email: 'guest@routeride.com', phone: '+234 800 000 0000', wallet: 25000 }
+  { id: 'u1', name: 'Guest User', email: 'guest@routyride.com', phone: '+234 800 000 0000', wallet: 25000 }
 ];
 
 // Simple distance calculation (Haversine approx for Lagos)
@@ -56,7 +56,7 @@ function estimatePrice(typeId, distanceKm) {
 
 // Health
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'Routeride API', time: new Date().toISOString() });
+  res.json({ status: 'ok', service: 'Routyride API', time: new Date().toISOString() });
 });
 
 // Get ride types
@@ -210,6 +210,6 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`\n🚗  Routeride server running at http://localhost:${PORT}`);
+  console.log(`\n🚗  Routyride server running at http://localhost:${PORT}`);
   console.log(`    Your ride, your way.\n`);
 });

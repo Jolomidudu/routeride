@@ -1,4 +1,4 @@
-# 🚗 Routeride — Your ride, your way
+# 🚗 Routyride — Your ride, your way
 
 Fullstack ride-hailing web app (Lagos / Nigeria focused).
 
@@ -6,7 +6,7 @@ Fullstack ride-hailing web app (Lagos / Nigeria focused).
 
 ```bash
 # 1. Unzip the folder, then open a terminal inside it
-cd routeride-app
+cd routyride-app
 
 # 2. Install dependencies (only needed once)
 npm install
@@ -41,7 +41,7 @@ Open your browser at: **http://localhost:3000**
 ## Project structure
 
 ```
-routeride-app/
+routyride-app/
 ├── package.json
 ├── server.js          # Express backend + API
 ├── public/

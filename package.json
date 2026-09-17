@@ -1,7 +1,7 @@
 {
-  "name": "routeride",
+  "name": "routyride",
   "version": "1.0.0",
-  "description": "Routeride - Your ride, your way. Fullstack ride-hailing app",
+  "description": "Routyride - Your ride, your way. Fullstack ride-hailing app",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

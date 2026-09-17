@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Routeride — Your ride, your way</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#059669" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Routyride — Your ride, your way</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -13,367 +15,436 @@
         extend: {
           colors: {
             brand: {
-              50: '#ecfdf5',
-              100: '#d1fae5',
-              200: '#a7f3d0',
-              300: '#6ee7b7',
-              400: '#34d399',
-              500: '#10b981',
-              600: '#059669',
-              700: '#047857',
-              800: '#065f46',
-              900: '#064e3b',
+              50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7',
+              400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857',
+              800: '#065f46', 900: '#064e3b',
             }
-          }
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
         }
       }
     }
   </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-    body { font-family: 'Inter', system-ui, sans-serif; }
-    .phone-frame {
-      box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-    }
-    #map { height: 100%; width: 100%; border-radius: 1rem; }
-    .leaflet-container { background: #e8f5e9; }
+    * { -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Inter', system-ui, sans-serif; overscroll-behavior: none; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    .pulse-dot {
-      animation: pulse 1.5s infinite;
+    #map { height: 100%; width: 100%; }
+    .leaflet-container { background: #e8f5e9; font-family: inherit; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes scaleIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+    @keyframes bounce-soft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+    .anim-fade { animation: fadeIn 0.35s ease-out both; }
+    .anim-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .anim-scale { animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .anim-delay-1 { animation-delay: 0.05s; }
+    .anim-delay-2 { animation-delay: 0.1s; }
+    .anim-delay-3 { animation-delay: 0.15s; }
+    .anim-delay-4 { animation-delay: 0.2s; }
+
+    .screen-enter { animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .btn-press:active { transform: scale(0.97); }
+    .card-press:active { transform: scale(0.98); }
+
+    .pulse-ring::before {
+      content: ''; position: absolute; inset: -4px; border-radius: 9999px;
+      border: 2px solid #10b981; animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.3); opacity: 0.7; }
+
+    .phone-frame {
+      box-shadow: 0 0 0 10px #1a1a1a, 0 0 0 12px #333, 0 25px 60px -15px rgb(0 0 0 / 0.4);
     }
-    .slide-up {
-      animation: slideUp 0.35s ease-out;
-    }
-    @keyframes slideUp {
-      from { transform: translateY(40px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+    @media (max-width: 1023px) {
+      .phone-frame { box-shadow: none !important; border: none !important; border-radius: 0 !important; padding: 0 !important; width: 100% !important; height: 100% !important; max-height: none !important; background: transparent !important; }
+      #app { border-radius: 0 !important; height: 100dvh !important; }
+      #landing-promo { display: none !important; }
+      #landing { padding: 0 !important; min-height: 100dvh; }
     }
   </style>
 </head>
-<body class="bg-gradient-to-br from-brand-50 via-white to-brand-100 min-h-screen">
-  <!-- Landing / Marketing Header (desktop) -->
-  <div id="landing" class="min-h-screen flex flex-col lg:flex-row items-center justify-center gap-8 p-6 lg:p-12">
-    <!-- Left promo -->
-    <div class="max-w-md text-center lg:text-left space-y-6">
-      <div class="flex items-center justify-center lg:justify-start gap-2">
-        <div class="w-10 h-10 rounded-full bg-brand-600 flex items-center justify-center text-white text-xl font-bold">📍</div>
+<body class="bg-gradient-to-br from-brand-50 via-white to-emerald-50 min-h-screen lg:min-h-screen">
+
+  <div id="landing" class="min-h-screen lg:min-h-screen flex flex-col lg:flex-row items-stretch lg:items-center justify-center gap-0 lg:gap-12 p-0 lg:p-10">
+
+    <!-- LEFT PROMO (desktop only) -->
+    <div id="landing-promo" class="hidden lg:flex max-w-md flex-col justify-center space-y-7 anim-slide-up">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-full bg-brand-600 flex items-center justify-center shadow-lg shadow-brand-200">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="white"/><circle cx="12" cy="9" r="2.5" fill="#059669"/></svg>
+        </div>
         <div>
-          <h1 class="text-2xl font-extrabold text-brand-700 tracking-tight">Routeride</h1>
-          <p class="text-xs text-brand-600 font-medium tracking-widest">RIDE · ARRIVE · REPEAT</p>
+          <h1 class="text-2xl font-extrabold text-brand-700 tracking-tight leading-none">Routyride</h1>
+          <p class="text-[10px] text-brand-600 font-semibold tracking-[0.2em] mt-0.5">RIDE · ARRIVE · REPEAT</p>
         </div>
       </div>
-      <h2 class="text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight">
+
+      <h2 class="text-5xl font-extrabold text-gray-900 leading-[1.1]">
         Your ride,<br><span class="text-brand-600">your way.</span>
       </h2>
-      <p class="text-gray-600 text-lg">Fast, safe and reliable rides whenever you need them. Anywhere, anytime.</p>
-      <div class="flex flex-wrap gap-3 justify-center lg:justify-start">
-        <button onclick="startApp()" class="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-6 py-3 rounded-full shadow-lg shadow-brand-200 transition flex items-center gap-2">
-          Request a Ride →
+      <p class="text-gray-600 text-lg leading-relaxed">Fast, safe and reliable rides whenever you need them. Anywhere, anytime.</p>
+
+      <div class="flex flex-wrap gap-3">
+        <button onclick="document.getElementById('app').scrollIntoView({behavior:'smooth'})" class="btn-press bg-brand-600 hover:bg-brand-700 text-white font-semibold px-7 py-3.5 rounded-full shadow-lg shadow-brand-300/50 transition flex items-center gap-2">
+          Request a Ride
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </button>
-        <button onclick="startApp()" class="border-2 border-brand-600 text-brand-700 font-semibold px-6 py-3 rounded-full hover:bg-brand-50 transition flex items-center gap-2">
-          📅 Book for Later
+        <button class="btn-press border-2 border-brand-600 text-brand-700 font-semibold px-6 py-3.5 rounded-full hover:bg-brand-50 transition flex items-center gap-2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          Book for Later
         </button>
       </div>
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 text-sm text-gray-700">
-        <div class="flex flex-col items-center gap-1"><span class="text-2xl">⏱️</span><span class="font-medium">Fast Pickup</span></div>
-        <div class="flex flex-col items-center gap-1"><span class="text-2xl">🛡️</span><span class="font-medium">Safe Rides</span></div>
-        <div class="flex flex-col items-center gap-1"><span class="text-2xl">💳</span><span class="font-medium">Multiple Payments</span></div>
-        <div class="flex flex-col items-center gap-1"><span class="text-2xl">🎧</span><span class="font-medium">24/7 Support</span></div>
+
+      <div class="grid grid-cols-4 gap-4 pt-2">
+        <div class="flex flex-col items-center gap-1.5 text-center">
+          <div class="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+          <span class="text-xs font-medium text-gray-700">Fast Pickup</span>
+        </div>
+        <div class="flex flex-col items-center gap-1.5 text-center">
+          <div class="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <span class="text-xs font-medium text-gray-700">Safe Rides</span>
+        </div>
+        <div class="flex flex-col items-center gap-1.5 text-center">
+          <div class="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+          </div>
+          <span class="text-xs font-medium text-gray-700">Payments</span>
+        </div>
+        <div class="flex flex-col items-center gap-1.5 text-center">
+          <div class="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+          </div>
+          <span class="text-xs font-medium text-gray-700">24/7 Support</span>
+        </div>
+      </div>
+
+      <div class="pt-4 opacity-90">
+        <div class="relative w-64 h-28 mx-auto lg:mx-0">
+          <div class="absolute bottom-0 left-0 right-0 h-3 bg-brand-200/60 rounded-full blur-sm"></div>
+          <div class="text-7xl select-none filter drop-shadow-lg">🚗</div>
+        </div>
       </div>
     </div>
 
-    <!-- Phone mockup -->
-    <div class="relative">
-      <div class="phone-frame w-[340px] h-[700px] bg-black rounded-[2.5rem] p-3 border-8 border-gray-900">
-        <div id="app" class="w-full h-full bg-white rounded-[1.8rem] overflow-hidden relative flex flex-col">
+    <!-- PHONE / APP -->
+    <div class="relative flex-1 lg:flex-none flex items-center justify-center">
+      <div class="phone-frame w-full max-w-[390px] h-[100dvh] lg:h-[740px] lg:w-[360px] bg-black lg:rounded-[2.8rem] lg:p-[10px] lg:border-[6px] lg:border-gray-900 overflow-hidden">
+        <div id="app" class="w-full h-full bg-white lg:rounded-[2.2rem] overflow-hidden relative flex flex-col shadow-inner">
+
           <!-- Status bar -->
-          <div class="flex justify-between items-center px-5 pt-3 pb-1 text-xs font-medium text-gray-800">
+          <div class="flex justify-between items-center px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-1 text-[11px] font-semibold text-gray-800 shrink-0 z-20 bg-white/80 backdrop-blur-sm">
             <span>9:41</span>
-            <div class="flex gap-1 items-center">
-              <span>📶</span><span>🔋</span>
+            <div class="flex gap-1.5 items-center text-[10px]">
+              <span>●●●●</span>
+              <span>WiFi</span>
+              <span class="bg-gray-800 text-white text-[9px] px-1 rounded-sm">100</span>
             </div>
           </div>
 
-          <!-- ========== HOME SCREEN ========== -->
-          <div id="screen-home" class="flex-1 overflow-y-auto no-scrollbar pb-20">
-            <div class="px-5 pt-2">
-              <div class="flex items-center gap-2 mb-1">
-                <div class="w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center text-white text-sm">📍</div>
-                <span class="font-bold text-brand-700 text-lg">Routeride</span>
-                <button class="ml-auto text-gray-400">🔔</button>
+          <!-- HOME -->
+          <div id="screen-home" class="flex-1 overflow-y-auto no-scrollbar pb-24 screen-enter">
+            <div class="px-5 pt-1">
+              <div class="flex items-center gap-2.5 mb-3 anim-slide-up">
+                <div class="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center shadow-md shadow-brand-200">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="white"/><circle cx="12" cy="9" r="2.5" fill="#059669"/></svg>
+                </div>
+                <span class="font-bold text-brand-700 text-lg tracking-tight">Routyride</span>
+                <button class="ml-auto w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition relative">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                  <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
               </div>
-              <p class="text-sm text-gray-500">Good morning,</p>
-              <h2 class="text-2xl font-bold text-gray-900 mb-4">Where are you going?</h2>
 
-              <!-- Location inputs -->
-              <div class="bg-gray-50 rounded-2xl p-3 space-y-2 mb-4 border border-gray-100">
-                <div class="flex items-center gap-3">
-                  <span class="text-brand-600 text-lg">🟢</span>
-                  <input id="pickup-input" type="text" placeholder="Enter pickup location" 
-                    class="flex-1 bg-transparent outline-none text-sm font-medium placeholder-gray-400"
+              <p class="text-sm text-gray-500 anim-slide-up anim-delay-1" id="greeting">Good morning,</p>
+              <h2 class="text-[1.65rem] font-bold text-gray-900 mb-4 leading-tight anim-slide-up anim-delay-1">Where are you going?</h2>
+
+              <div class="bg-gray-50/80 rounded-2xl p-3.5 space-y-0 mb-4 border border-gray-100/80 shadow-sm anim-slide-up anim-delay-2">
+                <div class="flex items-center gap-3 py-1.5">
+                  <div class="w-3 h-3 rounded-full bg-brand-500 ring-4 ring-brand-100 shrink-0"></div>
+                  <input id="pickup-input" type="text" placeholder="Enter pickup location"
+                    class="flex-1 bg-transparent outline-none text-[13px] font-medium placeholder-gray-400 text-gray-800"
                     value="123 Allen Avenue, Ikeja" />
                 </div>
-                <div class="border-t border-dashed border-gray-200 my-1"></div>
-                <div class="flex items-center gap-3">
-                  <span class="text-red-500 text-lg">📍</span>
-                  <input id="dest-input" type="text" placeholder="Enter destination" 
-                    class="flex-1 bg-transparent outline-none text-sm font-medium placeholder-gray-400"
+                <div class="ml-[5px] border-l-2 border-dashed border-gray-200 h-3"></div>
+                <div class="flex items-center gap-3 py-1.5">
+                  <div class="w-3 h-3 rounded-full bg-red-500 ring-4 ring-red-100 shrink-0"></div>
+                  <input id="dest-input" type="text" placeholder="Enter destination"
+                    class="flex-1 bg-transparent outline-none text-[13px] font-medium placeholder-gray-400 text-gray-800"
                     value="Victoria Island, Lagos" />
+                  <button onclick="swapLocations()" class="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition shrink-0">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 16V4M7 4L3 8M7 4l4 4M17 8v12M17 20l4-4M17 20l-4-4"/></svg>
+                  </button>
                 </div>
               </div>
 
-              <!-- Promo banner -->
-              <div class="relative rounded-2xl overflow-hidden mb-5 bg-gradient-to-r from-brand-700 to-brand-500 text-white p-4">
-                <div class="relative z-10">
-                  <p class="font-bold text-lg leading-tight">Ride smarter<br>with Routeride.</p>
-                  <p class="text-xs opacity-90 mt-1">Comfort, safety and convenience — always.</p>
-                  <button onclick="document.getElementById('ride-types').scrollIntoView({behavior:'smooth'})" 
-                    class="mt-3 bg-white text-brand-700 text-xs font-bold px-3 py-1.5 rounded-full">
+              <div class="relative rounded-2xl overflow-hidden mb-5 bg-gradient-to-br from-brand-700 via-brand-600 to-emerald-500 text-white p-4 shadow-lg shadow-brand-200/40 anim-slide-up anim-delay-2">
+                <div class="relative z-10 max-w-[60%]">
+                  <p class="font-bold text-[15px] leading-snug">Ride smarter<br>with Routyride.</p>
+                  <p class="text-[11px] opacity-90 mt-1 leading-relaxed">Comfort, safety and convenience — always.</p>
+                  <button onclick="document.getElementById('ride-types-section').scrollIntoView({behavior:'smooth'})"
+                    class="mt-3 bg-white text-brand-700 text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-sm btn-press">
                     Book a Ride →
                   </button>
                 </div>
-                <div class="absolute right-0 bottom-0 opacity-30 text-6xl">🚗</div>
+                <div class="absolute -right-2 -bottom-4 text-[5.5rem] opacity-25 select-none rotate-[-8deg]">🚗</div>
+                <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3"></div>
               </div>
 
-              <!-- Choose a Ride -->
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="font-bold text-gray-900">Choose a Ride</h3>
-                <button class="text-brand-600 text-sm font-medium">See all →</button>
+              <div id="ride-types-section" class="flex items-center justify-between mb-3 anim-slide-up anim-delay-3">
+                <h3 class="font-bold text-gray-900 text-[15px]">Choose a Ride</h3>
+                <button class="text-brand-600 text-xs font-semibold">See all →</button>
               </div>
-              <div id="ride-types" class="grid grid-cols-2 gap-3 mb-5">
-                <!-- filled by JS -->
-              </div>
+              <div id="ride-types" class="grid grid-cols-2 gap-2.5 mb-5 anim-slide-up anim-delay-3"></div>
 
-              <!-- Popular Destinations -->
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="font-bold text-gray-900">Popular Destinations</h3>
-                <button class="text-brand-600 text-sm font-medium">See all →</button>
+              <div class="flex items-center justify-between mb-3 anim-slide-up anim-delay-4">
+                <h3 class="font-bold text-gray-900 text-[15px]">Popular Destinations</h3>
+                <button class="text-brand-600 text-xs font-semibold">See all →</button>
               </div>
-              <div id="popular-dest" class="grid grid-cols-4 gap-2 mb-4">
-                <!-- filled by JS -->
-              </div>
+              <div id="popular-dest" class="grid grid-cols-4 gap-2 mb-6 anim-slide-up anim-delay-4"></div>
             </div>
           </div>
 
-          <!-- ========== BOOKING / CONFIRM SCREEN ========== -->
+          <!-- BOOKING -->
           <div id="screen-booking" class="hidden flex-1 flex flex-col overflow-hidden">
-            <div class="px-5 pt-2 pb-3 border-b border-gray-100">
-              <button onclick="showScreen('home')" class="text-gray-600 text-sm mb-2">← Back</button>
-              <h2 class="text-xl font-bold">Confirm Ride</h2>
+            <div class="px-5 pt-2 pb-3 border-b border-gray-100 shrink-0">
+              <button onclick="showScreen('home')" class="flex items-center gap-1 text-gray-500 text-sm font-medium mb-2 hover:text-gray-800 transition">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Back
+              </button>
+              <h2 class="text-xl font-bold text-gray-900">Confirm Ride</h2>
             </div>
-            <div class="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-              <div class="bg-gray-50 rounded-2xl p-4 space-y-3">
-                <div class="flex gap-3">
-                  <span class="text-brand-600">🟢</span>
+            <div class="flex-1 overflow-y-auto no-scrollbar px-5 py-4 space-y-4">
+              <div class="bg-gray-50 rounded-2xl p-4 space-y-3.5 border border-gray-100 anim-slide-up">
+                <div class="flex gap-3 items-start">
+                  <div class="w-2.5 h-2.5 rounded-full bg-brand-500 ring-4 ring-brand-100 mt-1.5 shrink-0"></div>
                   <div>
-                    <p class="text-xs text-gray-500">Pickup</p>
-                    <p id="confirm-pickup" class="font-medium text-sm">123 Allen Avenue, Ikeja</p>
+                    <p class="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Pickup</p>
+                    <p id="confirm-pickup" class="font-semibold text-sm text-gray-800 mt-0.5">123 Allen Avenue, Ikeja</p>
                   </div>
                 </div>
-                <div class="flex gap-3">
-                  <span class="text-red-500">📍</span>
+                <div class="ml-1 border-l-2 border-dashed border-gray-200 h-2"></div>
+                <div class="flex gap-3 items-start">
+                  <div class="w-2.5 h-2.5 rounded-full bg-red-500 ring-4 ring-red-100 mt-1.5 shrink-0"></div>
                   <div>
-                    <p class="text-xs text-gray-500">Destination</p>
-                    <p id="confirm-dest" class="font-medium text-sm">Victoria Island, Lagos</p>
+                    <p class="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Destination</p>
+                    <p id="confirm-dest" class="font-semibold text-sm text-gray-800 mt-0.5">Victoria Island, Lagos</p>
                   </div>
                 </div>
               </div>
 
-              <div id="confirm-ride-type" class="bg-white border-2 border-brand-500 rounded-2xl p-4 flex items-center gap-4">
-                <!-- filled -->
-              </div>
+              <div id="confirm-ride-type" class="bg-white border-2 border-brand-500 rounded-2xl p-4 flex items-center gap-4 shadow-sm shadow-brand-100 anim-slide-up anim-delay-1"></div>
 
-              <div class="space-y-2">
-                <p class="text-sm font-medium text-gray-700">Payment method</p>
+              <div class="space-y-2.5 anim-slide-up anim-delay-2">
+                <p class="text-sm font-semibold text-gray-700">Payment method</p>
                 <div class="flex gap-2">
-                  <button onclick="setPayment('cash')" id="pay-cash" class="flex-1 py-2.5 rounded-xl border-2 border-brand-500 bg-brand-50 text-brand-700 font-medium text-sm">💵 Cash</button>
-                  <button onclick="setPayment('card')" id="pay-card" class="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-600 font-medium text-sm">💳 Card</button>
-                  <button onclick="setPayment('wallet')" id="pay-wallet" class="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-600 font-medium text-sm">👛 Wallet</button>
+                  <button onclick="setPayment('cash')" id="pay-cash" class="flex-1 py-3 rounded-xl border-2 border-brand-500 bg-brand-50 text-brand-700 font-semibold text-xs btn-press transition">💵 Cash</button>
+                  <button onclick="setPayment('card')" id="pay-card" class="flex-1 py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold text-xs btn-press transition">💳 Card</button>
+                  <button onclick="setPayment('wallet')" id="pay-wallet" class="flex-1 py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold text-xs btn-press transition">👛 Wallet</button>
                 </div>
               </div>
 
-              <div class="bg-brand-50 rounded-2xl p-4 flex justify-between items-center">
+              <div class="bg-gradient-to-r from-brand-50 to-emerald-50 rounded-2xl p-4 flex justify-between items-center border border-brand-100 anim-slide-up anim-delay-3">
                 <div>
-                  <p class="text-xs text-gray-500">Estimated fare</p>
-                  <p id="confirm-price" class="text-2xl font-bold text-brand-700">₦2,500</p>
+                  <p class="text-[11px] text-gray-500 font-medium">Estimated fare</p>
+                  <p id="confirm-price" class="text-2xl font-extrabold text-brand-700 tracking-tight">₦2,500</p>
                 </div>
                 <div class="text-right">
-                  <p class="text-xs text-gray-500">Distance</p>
-                  <p id="confirm-distance" class="font-semibold">8.2 km</p>
+                  <p class="text-[11px] text-gray-500 font-medium">Distance</p>
+                  <p id="confirm-distance" class="font-bold text-gray-800">8.2 km</p>
                 </div>
               </div>
             </div>
-            <div class="p-5 border-t border-gray-100">
-              <button onclick="requestRide()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-brand-200 transition">
+            <div class="p-5 border-t border-gray-100 shrink-0 bg-white">
+              <button onclick="requestRide()" class="w-full bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-bold py-4 rounded-2xl shadow-lg shadow-brand-300/40 transition btn-press text-[15px]">
                 Confirm & Request Ride
               </button>
             </div>
           </div>
 
-          <!-- ========== SEARCHING SCREEN ========== -->
+          <!-- SEARCHING -->
           <div id="screen-searching" class="hidden flex-1 flex flex-col items-center justify-center p-8 text-center">
-            <div class="w-20 h-20 rounded-full bg-brand-100 flex items-center justify-center mb-6 relative">
-              <div class="absolute inset-0 rounded-full border-4 border-brand-500 border-t-transparent animate-spin"></div>
-              <span class="text-3xl">🚗</span>
+            <div class="relative w-24 h-24 mb-8">
+              <div class="absolute inset-0 rounded-full border-[3px] border-brand-200"></div>
+              <div class="absolute inset-0 rounded-full border-[3px] border-brand-500 border-t-transparent animate-spin" style="animation-duration:0.9s"></div>
+              <div class="absolute inset-3 rounded-full bg-brand-50 flex items-center justify-center">
+                <span class="text-4xl" style="animation: bounce-soft 1.2s ease-in-out infinite">🚗</span>
+              </div>
+              <div class="pulse-ring absolute inset-0 rounded-full"></div>
             </div>
-            <h2 class="text-xl font-bold text-gray-900 mb-2">Finding your ride...</h2>
-            <p class="text-gray-500 text-sm mb-6">We're matching you with the nearest driver</p>
-            <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-              <div id="search-progress" class="h-full bg-brand-500 rounded-full transition-all duration-500" style="width: 20%"></div>
+            <h2 class="text-xl font-bold text-gray-900 mb-2 anim-slide-up">Finding your ride...</h2>
+            <p class="text-gray-500 text-sm mb-8 anim-slide-up anim-delay-1">Matching you with the nearest driver</p>
+            <div class="w-full max-w-[220px] bg-gray-100 rounded-full h-1.5 overflow-hidden">
+              <div id="search-progress" class="h-full bg-gradient-to-r from-brand-400 to-brand-600 rounded-full transition-all duration-700 ease-out" style="width:15%"></div>
             </div>
-            <button onclick="cancelRide()" class="mt-8 text-red-500 font-medium text-sm">Cancel</button>
+            <button onclick="cancelRide()" class="mt-10 text-red-500 font-semibold text-sm hover:text-red-600 transition">Cancel request</button>
           </div>
 
-          <!-- ========== ON TRIP SCREEN ========== -->
+          <!-- ON TRIP -->
           <div id="screen-trip" class="hidden flex-1 flex flex-col overflow-hidden">
-            <div class="px-4 pt-2 pb-2 flex items-center gap-2">
-              <button onclick="showScreen('home')" class="text-gray-600">←</button>
-              <h2 class="font-bold text-lg flex-1 text-center">On Trip</h2>
-              <span class="w-6"></span>
+            <div class="px-4 pt-1 pb-2 flex items-center gap-2 shrink-0">
+              <button onclick="showScreen('home')" class="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              </button>
+              <h2 class="font-bold text-lg flex-1 text-center text-gray-900">On Trip</h2>
+              <span class="w-9"></span>
             </div>
 
-            <!-- Map -->
-            <div class="relative mx-3 h-56 rounded-2xl overflow-hidden shadow-md border border-gray-100">
+            <div class="relative mx-3 h-[220px] rounded-2xl overflow-hidden shadow-md border border-gray-100 shrink-0">
               <div id="map"></div>
-              <div class="absolute top-3 left-3 right-3 bg-white/95 backdrop-blur rounded-xl px-3 py-2 shadow flex items-center gap-2 text-sm">
-                <span class="text-brand-600 text-lg">🟢</span>
-                <div>
-                  <p class="font-semibold text-gray-900" id="trip-status-text">You're on your way</p>
-                  <p class="text-xs text-gray-500" id="trip-eta-text">Arriving in 6 min</p>
+              <div class="absolute top-3 left-3 right-3 bg-white/95 backdrop-blur-md rounded-xl px-3.5 py-2.5 shadow-lg flex items-center gap-2.5 text-sm border border-white/50">
+                <div class="w-2.5 h-2.5 rounded-full bg-brand-500 animate-pulse shrink-0"></div>
+                <div class="min-w-0">
+                  <p class="font-semibold text-gray-900 text-[13px] truncate" id="trip-status-text">You're on your way</p>
+                  <p class="text-[11px] text-gray-500" id="trip-eta-text">Arriving in 6 min</p>
                 </div>
               </div>
             </div>
 
-            <!-- Driver card -->
-            <div class="px-4 mt-4 flex-1 overflow-y-auto">
-              <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <div class="px-4 mt-4 flex-1 overflow-y-auto no-scrollbar pb-6">
+              <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 anim-slide-up">
                 <div class="flex items-center gap-3">
-                  <div class="w-14 h-14 rounded-full bg-brand-100 flex items-center justify-center text-3xl" id="driver-photo">👨‍💼</div>
-                  <div class="flex-1">
-                    <p class="font-bold text-gray-900" id="driver-name">Tunde Adesina</p>
-                    <p class="text-sm text-amber-500">⭐ <span id="driver-rating">4.8</span> <span class="text-gray-400">(<span id="driver-rides">1.2k</span> rides)</span></p>
-                    <p class="text-xs text-gray-500" id="driver-car">Toyota Corolla · ABC 123 XY</p>
+                  <div class="w-14 h-14 rounded-full bg-gradient-to-br from-brand-100 to-brand-200 flex items-center justify-center text-3xl shadow-inner shrink-0" id="driver-photo">👨‍💼</div>
+                  <div class="flex-1 min-w-0">
+                    <p class="font-bold text-gray-900 text-[15px] truncate" id="driver-name">Tunde Adesina</p>
+                    <p class="text-sm text-amber-500 font-medium">⭐ <span id="driver-rating">4.8</span> <span class="text-gray-400 font-normal text-xs">(<span id="driver-rides">1.2k</span> rides)</span></p>
+                    <p class="text-[11px] text-gray-500 truncate" id="driver-car">Toyota Corolla · ABC 123 XY</p>
                   </div>
-                  <div class="flex gap-2">
-                    <button class="w-10 h-10 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center">📞</button>
-                    <button class="w-10 h-10 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center">💬</button>
-                  </div>
-                </div>
-
-                <div class="mt-4 space-y-2 text-sm">
-                  <div class="flex gap-2 items-start">
-                    <span class="text-brand-600 mt-0.5">🟢</span>
-                    <div>
-                      <p class="font-medium" id="trip-pickup">123 Allen Avenue, Ikeja</p>
-                      <p class="text-xs text-gray-400" id="trip-pickup-time">10:24 AM</p>
-                    </div>
-                  </div>
-                  <div class="flex gap-2 items-start">
-                    <span class="text-red-500 mt-0.5">📍</span>
-                    <div>
-                      <p class="font-medium" id="trip-dest">Victoria Island, Lagos</p>
-                      <p class="text-xs text-gray-400" id="trip-dest-time">11:05 AM</p>
-                    </div>
+                  <div class="flex gap-2 shrink-0">
+                    <button class="w-10 h-10 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center hover:bg-brand-100 transition btn-press">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    </button>
+                    <button class="w-10 h-10 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center hover:bg-brand-100 transition btn-press">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </button>
                   </div>
                 </div>
 
-                <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
+                <div class="mt-4 space-y-3 text-sm">
+                  <div class="flex gap-2.5 items-start">
+                    <div class="w-2 h-2 rounded-full bg-brand-500 mt-1.5 shrink-0"></div>
+                    <div>
+                      <p class="font-medium text-gray-800 text-[13px]" id="trip-pickup">123 Allen Avenue, Ikeja</p>
+                      <p class="text-[11px] text-gray-400" id="trip-pickup-time">10:24 AM</p>
+                    </div>
+                  </div>
+                  <div class="flex gap-2.5 items-start">
+                    <div class="w-2 h-2 rounded-full bg-red-500 mt-1.5 shrink-0"></div>
+                    <div>
+                      <p class="font-medium text-gray-800 text-[13px]" id="trip-dest">Victoria Island, Lagos</p>
+                      <p class="text-[11px] text-gray-400" id="trip-dest-time">11:05 AM</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3.5">
                   <div class="flex items-center gap-2">
-                    <span class="text-xl">💵</span>
-                    <span class="font-bold text-lg" id="trip-price">₦2,500</span>
+                    <span class="text-lg">💵</span>
+                    <span class="font-extrabold text-lg text-gray-900" id="trip-price">₦2,500</span>
                   </div>
-                  <span class="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-600" id="trip-payment">Cash</span>
+                  <span class="text-[11px] bg-gray-100 px-2.5 py-1 rounded-full text-gray-600 font-medium" id="trip-payment">Cash</span>
                 </div>
               </div>
 
-              <div class="flex gap-3 mt-4 mb-6">
-                <button onclick="shareRide()" class="flex-1 py-3 rounded-xl border border-brand-200 text-brand-700 font-medium text-sm">
-                  ↗️ Share Ride
+              <div class="flex gap-3 mt-4">
+                <button onclick="shareRide()" class="flex-1 py-3.5 rounded-xl border border-brand-200 text-brand-700 font-semibold text-sm hover:bg-brand-50 transition btn-press flex items-center justify-center gap-1.5">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+                  Share Ride
                 </button>
-                <button onclick="cancelRide()" class="flex-1 py-3 rounded-xl bg-red-50 text-red-600 font-medium text-sm">
+                <button onclick="cancelRide()" class="flex-1 py-3.5 rounded-xl bg-red-50 text-red-600 font-semibold text-sm hover:bg-red-100 transition btn-press">
                   Cancel Ride
                 </button>
               </div>
             </div>
           </div>
 
-          <!-- ========== ACTIVITY SCREEN ========== -->
-          <div id="screen-activity" class="hidden flex-1 overflow-y-auto no-scrollbar pb-20">
-            <div class="px-5 pt-4">
-              <h2 class="text-xl font-bold mb-4">Activity</h2>
+          <!-- ACTIVITY -->
+          <div id="screen-activity" class="hidden flex-1 overflow-y-auto no-scrollbar pb-24">
+            <div class="px-5 pt-3">
+              <h2 class="text-xl font-bold text-gray-900 mb-4">Activity</h2>
               <div id="activity-list" class="space-y-3">
-                <p class="text-gray-400 text-sm text-center py-8">No rides yet. Request your first ride!</p>
+                <p class="text-gray-400 text-sm text-center py-12">No rides yet. Request your first ride!</p>
               </div>
             </div>
           </div>
 
-          <!-- ========== WALLET SCREEN ========== -->
-          <div id="screen-wallet" class="hidden flex-1 overflow-y-auto no-scrollbar pb-20">
-            <div class="px-5 pt-4">
-              <h2 class="text-xl font-bold mb-4">Wallet</h2>
-              <div class="bg-gradient-to-br from-brand-600 to-brand-800 rounded-2xl p-5 text-white mb-6">
-                <p class="text-sm opacity-80">Available Balance</p>
-                <p class="text-3xl font-bold mt-1" id="wallet-balance">₦25,000</p>
-                <div class="flex gap-3 mt-5">
-                  <button class="flex-1 bg-white/20 backdrop-blur py-2 rounded-xl text-sm font-medium">+ Top Up</button>
-                  <button class="flex-1 bg-white/20 backdrop-blur py-2 rounded-xl text-sm font-medium">Withdraw</button>
+          <!-- WALLET -->
+          <div id="screen-wallet" class="hidden flex-1 overflow-y-auto no-scrollbar pb-24">
+            <div class="px-5 pt-3">
+              <h2 class="text-xl font-bold text-gray-900 mb-4">Wallet</h2>
+              <div class="bg-gradient-to-br from-brand-600 via-brand-700 to-emerald-800 rounded-2xl p-5 text-white mb-6 shadow-xl shadow-brand-200/50 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3"></div>
+                <p class="text-sm opacity-80 relative">Available Balance</p>
+                <p class="text-3xl font-extrabold mt-1 tracking-tight relative" id="wallet-balance">₦25,000</p>
+                <div class="flex gap-3 mt-5 relative">
+                  <button class="flex-1 bg-white/20 backdrop-blur py-2.5 rounded-xl text-sm font-semibold hover:bg-white/30 transition btn-press">+ Top Up</button>
+                  <button class="flex-1 bg-white/20 backdrop-blur py-2.5 rounded-xl text-sm font-semibold hover:bg-white/30 transition btn-press">Withdraw</button>
                 </div>
               </div>
-              <h3 class="font-semibold text-gray-800 mb-3">Recent Transactions</h3>
-              <div class="space-y-3 text-sm">
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <div><p class="font-medium">Ride to Victoria Island</p><p class="text-xs text-gray-400">Today, 10:24 AM</p></div>
-                  <span class="text-red-500 font-medium">-₦2,500</span>
+              <h3 class="font-semibold text-gray-800 mb-3 text-sm">Recent Transactions</h3>
+              <div class="space-y-1">
+                <div class="flex justify-between items-center py-3 border-b border-gray-50">
+                  <div><p class="font-medium text-sm text-gray-800">Ride to Victoria Island</p><p class="text-[11px] text-gray-400">Today, 10:24 AM</p></div>
+                  <span class="text-red-500 font-semibold text-sm">-₦2,500</span>
                 </div>
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                  <div><p class="font-medium">Wallet Top-up</p><p class="text-xs text-gray-400">Yesterday</p></div>
-                  <span class="text-brand-600 font-medium">+₦10,000</span>
+                <div class="flex justify-between items-center py-3 border-b border-gray-50">
+                  <div><p class="font-medium text-sm text-gray-800">Wallet Top-up</p><p class="text-[11px] text-gray-400">Yesterday</p></div>
+                  <span class="text-brand-600 font-semibold text-sm">+₦10,000</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- ========== PROFILE SCREEN ========== -->
-          <div id="screen-profile" class="hidden flex-1 overflow-y-auto no-scrollbar pb-20">
-            <div class="px-5 pt-4">
+          <!-- PROFILE -->
+          <div id="screen-profile" class="hidden flex-1 overflow-y-auto no-scrollbar pb-24">
+            <div class="px-5 pt-3">
               <div class="flex flex-col items-center mb-6">
-                <div class="w-20 h-20 rounded-full bg-brand-100 flex items-center justify-center text-4xl mb-3">👤</div>
-                <h2 class="text-xl font-bold">Guest User</h2>
-                <p class="text-sm text-gray-500">guest@routeride.com</p>
+                <div class="w-20 h-20 rounded-full bg-gradient-to-br from-brand-100 to-brand-200 flex items-center justify-center text-4xl mb-3 shadow-inner">👤</div>
+                <h2 class="text-xl font-bold text-gray-900">Guest User</h2>
+                <p class="text-sm text-gray-500">guest@routyride.com</p>
               </div>
-              <div class="space-y-2">
-                <button class="w-full text-left px-4 py-3 rounded-xl bg-gray-50 font-medium text-sm flex justify-between items-center">
-                  <span>📱 Phone</span><span class="text-gray-400">+234 800 000 0000</span>
+              <div class="space-y-1.5">
+                <button class="w-full text-left px-4 py-3.5 rounded-xl bg-gray-50 font-medium text-sm flex justify-between items-center hover:bg-gray-100 transition">
+                  <span class="flex items-center gap-2.5"><span>📱</span> Phone</span>
+                  <span class="text-gray-400 text-xs">+234 800 000 0000</span>
                 </button>
-                <button class="w-full text-left px-4 py-3 rounded-xl bg-gray-50 font-medium text-sm">⭐ Rate the app</button>
-                <button class="w-full text-left px-4 py-3 rounded-xl bg-gray-50 font-medium text-sm">🛟 Help & Support</button>
-                <button class="w-full text-left px-4 py-3 rounded-xl bg-gray-50 font-medium text-sm">⚙️ Settings</button>
-                <button class="w-full text-left px-4 py-3 rounded-xl bg-red-50 text-red-600 font-medium text-sm mt-4">Log out</button>
+                <button class="w-full text-left px-4 py-3.5 rounded-xl bg-gray-50 font-medium text-sm hover:bg-gray-100 transition flex items-center gap-2.5"><span>⭐</span> Rate the app</button>
+                <button class="w-full text-left px-4 py-3.5 rounded-xl bg-gray-50 font-medium text-sm hover:bg-gray-100 transition flex items-center gap-2.5"><span>🛟</span> Help & Support</button>
+                <button class="w-full text-left px-4 py-3.5 rounded-xl bg-gray-50 font-medium text-sm hover:bg-gray-100 transition flex items-center gap-2.5"><span>⚙️</span> Settings</button>
+                <button class="w-full text-left px-4 py-3.5 rounded-xl bg-red-50 text-red-600 font-medium text-sm mt-3 hover:bg-red-100 transition flex items-center gap-2.5"><span>🚪</span> Log out</button>
               </div>
             </div>
           </div>
 
           <!-- Bottom Navigation -->
-          <div id="bottom-nav" class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around py-2 px-1 safe-area">
-            <button onclick="showScreen('home')" data-nav="home" class="nav-btn flex flex-col items-center gap-0.5 text-brand-600">
-              <span class="text-xl">🏠</span><span class="text-[10px] font-medium">Home</span>
+          <div id="bottom-nav" class="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 flex justify-around pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] px-1 z-30">
+            <button onclick="showScreen('home')" data-nav="home" class="nav-btn flex flex-col items-center gap-0.5 text-brand-600 min-w-[56px] py-1 transition">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+              <span class="text-[10px] font-semibold">Home</span>
             </button>
-            <button onclick="showScreen('home')" data-nav="ride" class="nav-btn flex flex-col items-center gap-0.5 text-gray-400">
-              <span class="text-xl">🚗</span><span class="text-[10px] font-medium">Ride</span>
+            <button onclick="showScreen('home')" data-nav="ride" class="nav-btn flex flex-col items-center gap-0.5 text-gray-400 min-w-[56px] py-1 transition">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14v-5H5v5zM5 12l2-5h10l2 5"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>
+              <span class="text-[10px] font-semibold">Ride</span>
             </button>
-            <button onclick="showScreen('activity')" data-nav="activity" class="nav-btn flex flex-col items-center gap-0.5 text-gray-400">
-              <span class="text-xl">📋</span><span class="text-[10px] font-medium">Activity</span>
+            <button onclick="showScreen('activity')" data-nav="activity" class="nav-btn flex flex-col items-center gap-0.5 text-gray-400 min-w-[56px] py-1 transition">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+              <span class="text-[10px] font-semibold">Activity</span>
             </button>
-            <button onclick="showScreen('wallet')" data-nav="wallet" class="nav-btn flex flex-col items-center gap-0.5 text-gray-400">
-              <span class="text-xl">👛</span><span class="text-[10px] font-medium">Wallet</span>
+            <button onclick="showScreen('wallet')" data-nav="wallet" class="nav-btn flex flex-col items-center gap-0.5 text-gray-400 min-w-[56px] py-1 transition">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4h-4z"/></svg>
+              <span class="text-[10px] font-semibold">Wallet</span>
             </button>
-            <button onclick="showScreen('profile')" data-nav="profile" class="nav-btn flex flex-col items-center gap-0.5 text-gray-400">
-              <span class="text-xl">👤</span><span class="text-[10px] font-medium">Profile</span>
+            <button onclick="showScreen('profile')" data-nav="profile" class="nav-btn flex flex-col items-center gap-0.5 text-gray-400 min-w-[56px] py-1 transition">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span class="text-[10px] font-semibold">Profile</span>
             </button>
           </div>
         </div>
