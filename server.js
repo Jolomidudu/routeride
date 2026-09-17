@@ -2,15 +2,18 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'routeride-secret-change-in-production';
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ==================== IN-MEMORY DATA ====================
+// ==================== DATA ====================
 const drivers = [
   { id: 'd1', name: 'Tunde Adesina', rating: 4.8, rides: 1200, car: 'Toyota Corolla', plate: 'ABC 123 XY', photo: '👨‍💼', lat: 6.5244, lng: 3.3792, available: true },
   { id: 'd2', name: 'Chioma Okeke', rating: 4.9, rides: 850, car: 'Honda Accord', plate: 'XYZ 456 AB', photo: '👩‍💼', lat: 6.4550, lng: 3.3941, available: true },
@@ -34,16 +37,24 @@ const popularDestinations = [
 
 let rides = [];
 let users = [
-  { id: 'u1', name: 'Guest User', email: 'guest@routyride.com', phone: '+234 800 000 0000', wallet: 25000 }
+  // demo account: email demo@routeride.com / password: demo1234
+  {
+    id: 'u1',
+    name: 'Demo User',
+    email: 'demo@routeride.com',
+    phone: '+234 800 000 0000',
+    passwordHash: bcrypt.hashSync('demo1234', 10),
+    wallet: 25000,
+    createdAt: new Date().toISOString()
+  }
 ];
 
-// Simple distance calculation (Haversine approx for Lagos)
 function getDistanceKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function estimatePrice(typeId, distanceKm) {
@@ -52,24 +63,98 @@ function estimatePrice(typeId, distanceKm) {
   return Math.round(type.basePrice + type.perKm * distanceKm);
 }
 
-// ==================== API ROUTES ====================
+// Auth middleware
+function authRequired(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return res.status(401).json({ error: 'Login required' });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    const user = users.find(u => u.id === payload.userId);
+    if (!user) return res.status(401).json({ error: 'User not found' });
+    req.user = { id: user.id, name: user.name, email: user.email, phone: user.phone, wallet: user.wallet };
+    next();
+  } catch (e) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+}
 
-// Health
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'Routyride API', time: new Date().toISOString() });
+function publicUser(u) {
+  return { id: u.id, name: u.name, email: u.email, phone: u.phone || '', wallet: u.wallet };
+}
+
+// ==================== AUTH ROUTES ====================
+app.post('/api/auth/signup', async (req, res) => {
+  try {
+    const { name, email, phone, password } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'Name, email and password are required' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (existing) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+    const passwordHash = await bcrypt.hash(password, 10);
+    const user = {
+      id: uuidv4(),
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      phone: (phone || '').trim(),
+      passwordHash,
+      wallet: 5000, // welcome bonus
+      createdAt: new Date().toISOString()
+    };
+    users.push(user);
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    res.status(201).json({ token, user: publicUser(user) });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Signup failed' });
+  }
 });
 
-// Get ride types
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, user: publicUser(user) });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+app.get('/api/auth/me', authRequired, (req, res) => {
+  res.json(req.user);
+});
+
+// ==================== PUBLIC API ====================
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', service: 'Routeride API', time: new Date().toISOString() });
+});
+
 app.get('/api/ride-types', (req, res) => {
   res.json(rideTypes);
 });
 
-// Get popular destinations
 app.get('/api/destinations', (req, res) => {
   res.json(popularDestinations);
 });
 
-// Estimate fare
 app.post('/api/estimate', (req, res) => {
   const { pickupLat, pickupLng, destLat, destLng, rideTypeId } = req.body;
   if (!pickupLat || !destLat) {
@@ -87,17 +172,19 @@ app.post('/api/estimate', (req, res) => {
   });
 });
 
-// Request a ride
-app.post('/api/rides', (req, res) => {
+// ==================== PROTECTED / USER ROUTES ====================
+app.get('/api/user', authRequired, (req, res) => {
+  res.json(req.user);
+});
+
+app.post('/api/rides', authRequired, (req, res) => {
   const { pickup, destination, rideTypeId, paymentMethod = 'cash' } = req.body;
   if (!pickup || !destination || !rideTypeId) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
-
   const type = rideTypes.find(t => t.id === rideTypeId);
   if (!type) return res.status(400).json({ error: 'Invalid ride type' });
 
-  // Find nearest available driver (simplified)
   const available = drivers.filter(d => d.available);
   if (available.length === 0) {
     return res.status(503).json({ error: 'No drivers available right now' });
@@ -110,7 +197,8 @@ app.post('/api/rides', (req, res) => {
 
   const ride = {
     id: uuidv4(),
-    status: 'searching', // searching -> driver_assigned -> arriving -> on_trip -> completed | cancelled
+    userId: req.user.id,
+    status: 'searching',
     pickup,
     destination,
     rideType: type,
@@ -122,10 +210,8 @@ app.post('/api/rides', (req, res) => {
     etaMinutes: type.eta,
     distanceKm: Math.round(distance * 10) / 10
   };
-
   rides.push(ride);
 
-  // Simulate driver assignment after 2-4 seconds
   setTimeout(() => {
     const r = rides.find(x => x.id === ride.id);
     if (r && r.status === 'searching') {
@@ -138,18 +224,15 @@ app.post('/api/rides', (req, res) => {
   res.status(201).json(ride);
 });
 
-// Get ride by ID
-app.get('/api/rides/:id', (req, res) => {
-  const ride = rides.find(r => r.id === req.params.id);
+app.get('/api/rides/:id', authRequired, (req, res) => {
+  const ride = rides.find(r => r.id === req.params.id && r.userId === req.user.id);
   if (!ride) return res.status(404).json({ error: 'Ride not found' });
   res.json(ride);
 });
 
-// Update ride status (for simulation / cancel)
-app.patch('/api/rides/:id', (req, res) => {
-  const ride = rides.find(r => r.id === req.params.id);
+app.patch('/api/rides/:id', authRequired, (req, res) => {
+  const ride = rides.find(r => r.id === req.params.id && r.userId === req.user.id);
   if (!ride) return res.status(404).json({ error: 'Ride not found' });
-
   const { status } = req.body;
   if (status) {
     ride.status = status;
@@ -159,38 +242,27 @@ app.patch('/api/rides/:id', (req, res) => {
         if (d) d.available = true;
       }
     }
-    if (status === 'on_trip') {
-      ride.startedAt = new Date().toISOString();
-    }
-    if (status === 'completed') {
-      ride.completedAt = new Date().toISOString();
-    }
+    if (status === 'on_trip') ride.startedAt = new Date().toISOString();
+    if (status === 'completed') ride.completedAt = new Date().toISOString();
   }
   res.json(ride);
 });
 
-// List recent rides (activity)
-app.get('/api/rides', (req, res) => {
-  res.json(rides.slice(-20).reverse());
+app.get('/api/rides', authRequired, (req, res) => {
+  const userRides = rides.filter(r => r.userId === req.user.id).slice(-20).reverse();
+  res.json(userRides);
 });
 
-// Get user wallet (demo)
-app.get('/api/user', (req, res) => {
-  res.json(users[0]);
-});
-
-// Simulate progress of a ride (for frontend polling)
-app.post('/api/rides/:id/progress', (req, res) => {
-  const ride = rides.find(r => r.id === req.params.id);
+app.post('/api/rides/:id/progress', authRequired, (req, res) => {
+  const ride = rides.find(r => r.id === req.params.id && r.userId === req.user.id);
   if (!ride) return res.status(404).json({ error: 'Ride not found' });
 
-  // Auto-advance demo flow
   if (ride.status === 'driver_assigned') {
     ride.status = 'arriving';
     ride.etaMinutes = Math.max(1, ride.etaMinutes - 2);
   } else if (ride.status === 'arriving') {
     ride.status = 'on_trip';
-    ride.etaMinutes = Math.round(ride.distanceKm * 2.5); // rough remaining
+    ride.etaMinutes = Math.round(ride.distanceKm * 2.5);
   } else if (ride.status === 'on_trip') {
     ride.etaMinutes = Math.max(0, ride.etaMinutes - 1);
     if (ride.etaMinutes <= 0) {
@@ -204,12 +276,12 @@ app.post('/api/rides/:id/progress', (req, res) => {
   res.json(ride);
 });
 
-// Fallback to index
+// Fallback
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
   console.log(`\n🚗  Routyride server running at http://localhost:${PORT}`);
-  console.log(`    Your ride, your way.\n`);
+  console.log(`    Demo login: demo@routyride.com / demo1234\n`);
 });
